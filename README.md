@@ -1,5 +1,5 @@
 # 🎨 ArtMind – Agentic AI Painting Companion
-![ArtMind UI](https://github.com/shreyavs1/ArtMind-AgenticAI/artmind_ui.png)
+![ArtMind UI](https://github.com/shreyavs1/ArtMind-AgenticAI/blob/main/artmind_ui.jpg)
 
 
 ArtMind is a Flask-based Agentic AI project that helps artists find inspiration, plan artwork, and receive constructive critique.  
