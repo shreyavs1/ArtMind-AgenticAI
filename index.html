@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>ArtMind — Agentic AI Painting Companion</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    body{font-family:Arial,Helvetica,sans-serif;background:#f7f5f2;margin:0;padding:0}
+    header{background:#9f6b4d;color:white;padding:18px 24px}
+    .container{max-width:920px;margin:26px auto;padding:18px}
+    .card{background:white;border-radius:10px;padding:16px;box-shadow:0 8px 30px rgba(0,0,0,0.06);margin-bottom:16px}
+    label{display:block;margin-bottom:6px;color:#666}
+    input[type=text], input[type=file], textarea{width:100%;padding:10px;border-radius:6px;border:1px solid #ddd}
+    button{background:#9f6b4d;color:white;padding:10px 14px;border:none;border-radius:6px;cursor:pointer}
+    .palette{display:flex;gap:10px;margin-top:10px}
+    .sw{width:56px;height:56px;border-radius:8px}
+    .muted{color:#6b6b6b;font-size:13px}
+    pre{white-space:pre-wrap;background:#faf7f5;padding:12px;border-radius:6px}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🎨 ArtMind — Agentic AI Painting Companion</h1>
+  </header>
+  <div class="container">
+    <div class="card">
+      <label for="prompt">Describe what you want to paint</label>
+      <input id="prompt" type="text" placeholder="e.g., 'rainy evening street with warm lights'">
+      <label for="image" style="margin-top:10px">Upload painting image (optional)</label>
+      <input id="image" type="file" accept="image/*">
+      <div style="margin-top:12px; display:flex; gap:8px;">
+        <button id="go">Get Inspiration</button>
+        <button id="clear" style="background:#ef4444">Clear</button>
+      </div>
+      <div id="status" style="margin-top:10px" class="muted"></div>
+    </div>
+
+    <div id="result" class="card" style="display:none">
+      <h3>✨ ArtMind's Creative Plan</h3>
+      <div><b>🧠 Idea Agent:</b><div id="idea" class="muted"></div></div>
+      <div style="margin-top:8px"><b>🖌️ Guide Agent:</b><pre id="guide"></pre></div>
+      <div style="margin-top:8px"><b>🧩 Critic Agent:</b><div id="critic" class="muted"></div></div>
+      <div style="margin-top:12px"><b>🎨 Suggested Palette:</b>
+        <div id="palette" class="palette"></div>
+      </div>
+    </div>
+
+    <div id="history" class="card" style="display:none">
+      <h3>Conversation History</h3>
+      <div id="historyList"></div>
+    </div>
+  </div>
+
+<script>
+const goBtn = document.getElementById('go');
+const clearBtn = document.getElementById('clear');
+const promptEl = document.getElementById('prompt');
+const imageEl = document.getElementById('image');
+const status = document.getElementById('status');
+const result = document.getElementById('result');
+const ideaEl = document.getElementById('idea');
+const guideEl = document.getElementById('guide');
+const criticEl = document.getElementById('critic');
+const paletteDiv = document.getElementById('palette');
+const historyDiv = document.getElementById('history');
+const historyList = document.getElementById('historyList');
+
+let history = [];
+
+goBtn.addEventListener('click', async () => {
+  const prompt = promptEl.value.trim();
+  if (!prompt) {
+    alert('Please enter a painting idea.');
+    return;
+  }
+  status.textContent = 'Working...';
+  result.style.display = 'none';
+
+  const form = new FormData();
+  form.append('prompt', prompt);
+  if (imageEl.files && imageEl.files[0]) {
+    form.append('image', imageEl.files[0]);
+  }
+
+  try {
+    const res = await fetch('/api/inspire', {method:'POST', body: form});
+    if (!res.ok) {
+      const err = await res.json();
+      status.textContent = 'Error: ' + (err.error || res.status);
+      return;
+    }
+    const data = await res.json();
+    ideaEl.textContent = data.idea;
+    guideEl.textContent = data.guide;
+    criticEl.textContent = data.critic;
+    paletteDiv.innerHTML = '';
+    for (const c of data.palette) {
+      const el = document.createElement('div');
+      el.className = 'sw';
+      el.style.background = c;
+      paletteDiv.appendChild(el);
+    }
+    // push to history
+    history.unshift({prompt, idea:data.idea, guide:data.guide, critic:data.critic, palette:data.palette});
+    if (history.length > 8) history.pop();
+    renderHistory();
+    status.textContent = 'Done';
+    result.style.display = 'block';
+    historyDiv.style.display = history.length ? 'block' : 'none';
+  } catch (err) {
+    console.error(err);
+    status.textContent = 'Network error';
+  }
+});
+
+clearBtn.addEventListener('click', () => {
+  promptEl.value = '';
+  imageEl.value = '';
+  result.style.display = 'none';
+  status.textContent = '';
+  paletteDiv.innerHTML = '';
+});
+
+function renderHistory(){
+  historyList.innerHTML = '';
+  for(const h of history){
+    const container = document.createElement('div');
+    container.style.borderBottom = '1px solid #eee';
+    container.style.padding = '8px 0';
+    container.innerHTML = `<b>Prompt:</b> ${escapeHtml(h.prompt)}<br><b>Idea:</b> ${escapeHtml(h.idea)}`;
+    historyList.appendChild(container);
+  }
+}
+
+function escapeHtml(s){ return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+</script>
+</body>
+</html>
